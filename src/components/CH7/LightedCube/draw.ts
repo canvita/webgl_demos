@@ -22,15 +22,15 @@ export function drawLightedCube(gl: WebGL) {
 // 	requestAnimationFrame(rotating.bind(null, gl, n));
 // }
 
-let x = 3;
-const STEP = 1;
+let angle = 3;
+const STEP = 10;
 function keyDown(gl: WebGL, n: number, e?: KeyboardEvent) {
 	if (e?.keyCode == 39) {
-		x += STEP;
+		angle += STEP;
 	} else if (e?.keyCode == 37) {
-		x -= STEP;
+		angle -= STEP;
 	}
-	initMatrix(gl, x);
+	initMatrix(gl, angle);
 	gl.clearColor(0, 0, 0, 1.0);
 	gl.enable(gl.DEPTH_TEST);
 	// gl.enable(gl.POLYGON_OFFSET_FILL);
@@ -326,11 +326,21 @@ function initVertexs(gl: WebGL) {
 	return indices.length;
 }
 
-function initMatrix(gl: WebGL, x: number) {
+function initMatrix(gl: WebGL, angle: number) {
 	const mvpMatrix = new Matrix4();
 	mvpMatrix.setPerspective(30, 1, 1, 100);
-	mvpMatrix.lookAt(x, 3, 7, 0, 0, 0, 0, 1, 0);
+	mvpMatrix.lookAt(3, 3, 7, 0, 0, 0, 0, 1, 0);
 
+	const modelMatrix = new Matrix4();
+	modelMatrix.rotate(angle, 0, 1, 0);
+
+	const normalMatrix = new Matrix4();
+	normalMatrix.setInverseOf(modelMatrix);
+	normalMatrix.transpose();
+	const u_NormalMatrix = gl.getUniformLocation(gl.program, "u_NormalMatrix");
+	gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
+
+	mvpMatrix.concat(modelMatrix);
 	const u_MvpMatrix = gl.getUniformLocation(gl.program, "u_MvpMatrix");
 	gl.uniformMatrix4fv(u_MvpMatrix, false, mvpMatrix.elements);
 }
@@ -338,13 +348,12 @@ function initMatrix(gl: WebGL, x: number) {
 function initUniforms(gl: WebGL) {
 	// [0.5, 3.0, 4.0] 1.0 1.0
 
-	const u_LightDirection = gl.getUniformLocation(gl.program, "u_LightDirection");
+	const u_LightPosition = gl.getUniformLocation(gl.program, "u_LightPosition");
 	const u_LightColor = gl.getUniformLocation(gl.program, "u_LightColor");
 	const u_AmbientColor = gl.getUniformLocation(gl.program, "u_AmbientColor");
 	gl.uniform3f(u_LightColor, 1.0, 1.0, 1.0);
-	const lightDirection = new Vector3([0.5, 3.0, 4.0]);
-	lightDirection.normalize();
-	gl.uniform3fv(u_LightDirection, lightDirection.elements);
+	const lightPosition = new Vector3([0, 3.0, 4.0]);
+	gl.uniform3fv(u_LightPosition, lightPosition.elements);
 
 	gl.uniform3f(u_AmbientColor, 0.2, 0.2, 0.2);
 }
